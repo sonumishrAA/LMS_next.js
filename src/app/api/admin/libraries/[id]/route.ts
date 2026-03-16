@@ -3,9 +3,10 @@ import { supabaseService } from '@/lib/supabase/service'
 import { getAdminFromRequest } from '@/lib/admin-auth'
 
 // PATCH /api/admin/libraries/[id] — update subscription info
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await getAdminFromRequest(req)
+    const { id } = await params
     const body = await req.json()
 
     const allowed = [
@@ -27,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const { error } = await supabaseService
       .from('libraries')
       .update(updates)
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) throw error
 
@@ -38,11 +39,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // DELETE /api/admin/libraries/[id] — delete library + cleanup auth users
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await getAdminFromRequest(req)
-
-    const libId = params.id
+    const { id: libId } = await params
 
     // 1. Get owner_id and staff user_ids before deleting
     const { data: lib } = await supabaseService
@@ -64,7 +64,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     if (libError) throw libError
 
-    // 3. Delete staff auth users (only those unique to this library)
+    // 3. Delete staff auth users
     if (staffRows && staffRows.length > 0) {
       for (const s of staffRows) {
         if (s.user_id) {
@@ -73,7 +73,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       }
     }
 
-    // 4. Delete owner auth user if exists
+    // 4. Delete owner auth user if they have no other libraries
     if (lib?.owner_id) {
       // Check if owner owns any other libraries before deleting
       const { data: otherLibs } = await supabaseService
