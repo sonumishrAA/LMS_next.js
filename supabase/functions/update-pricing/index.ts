@@ -59,10 +59,22 @@ serve(async (req) => {
 
     throw new Error('Method not allowed')
   } catch (error: any) {
-    console.error('Pricing error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error(`Pricing error (${req.method}):`, error)
+    
+    // Choose appropriate status code
+    let status = 400
+    if (error.message.includes('No authorization') || error.message.includes('Unauthorized') || error.message.includes('signature')) {
+      status = 401
+    } else if (error.code || error.message.includes('Database')) {
+      status = 500
+    }
+
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      method: req.method 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 401,
+      status: status,
     })
   }
 })

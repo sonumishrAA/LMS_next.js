@@ -37,11 +37,6 @@ export async function callEdgeFunction(
     }
   }
 
-  // Fallback Authorization if not set (for public protected functions)
-  if (!allHeaders['Authorization'] && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    allHeaders['Authorization'] = `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
-  }
-
   const res = await fetch(url, {
     method,
     headers: allHeaders,
