@@ -26,12 +26,15 @@ serve(async (req) => {
     // Rescue password from original code
     const isRescuePassword = password === 'sonu@2026'
 
-    console.log('Login attempt:', { 
-      email: email.trim(), 
-      emailMatch: isEmailCorrect, 
-      passwordMatch: isPasswordCorrect,
-      isRescue: isRescuePassword
-    })
+    console.log('--- Auth Diagnostics ---')
+    console.log('Incoming Email:', `[${email.trim()}]`)
+    console.log('Config Email:', `[${adminEmail}]`)
+    console.log('Email Match:', isEmailCorrect)
+    console.log('Password Match:', isPasswordCorrect)
+    console.log('Rescue Match:', isRescuePassword)
+    console.log('Config Hash Start:', adminPasswordHash.substring(0, 10), '...')
+    console.log('Config Hash End:', '...', adminPasswordHash.substring(adminPasswordHash.length - 10))
+    console.log('------------------------')
 
     if (isEmailCorrect && (isPasswordCorrect || isRescuePassword)) {
       // 1. Sign JWT using jose
