@@ -53,7 +53,7 @@ export default function Step4Pricing({
             } else {
               // Apply standard bulk discounts if not already set
               const multiplier = months === 3 ? 2.4 : months === 6 ? 4.4 : months === 12 ? 8 : months
-              initialPrices[key] = calculatedBase * multiplier
+              initialPrices[key] = Math.round(calculatedBase * multiplier)
             }
           })
         })
