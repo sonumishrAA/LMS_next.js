@@ -35,10 +35,10 @@ export default function Step4Pricing({
           .from('pricing_config')
           .select('*')
 
-        // Use 500 as requested. If DB has a value > 10, use it, otherwise use 500.
-        // This prevents test values like '1' from overriding the requested default.
+        // Default to 500 as requested. If DB has any value > 0, use it.
+        // User confirmed they want to use '1' if they set it.
         const baseFromDB = Number(pricingData?.find(p => p.plan === '1m')?.amount || 0)
-        const baseMonthly = baseFromDB > 10 ? baseFromDB : 500
+        const baseMonthly = baseFromDB > 0 ? baseFromDB : 500
         console.log('Using base monthly price:', baseMonthly)
 
         const initialPrices: Record<string, number> = {}
