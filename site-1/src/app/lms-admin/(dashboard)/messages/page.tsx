@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { callEdgeFunction } from '@/lib/api'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 interface Message {
   id: string
@@ -35,7 +36,7 @@ export default function MessagesInbox() {
   const fetchMessages = async (silent = false) => {
     if (!silent) setIsLoading(true)
     try {
-      const data = await callEdgeFunction('admin-messages', { useAdminToken: true })
+      const data = await callEdgeFunction('admin-messages', { method: 'GET', useAdminToken: true })
       if (data) setMessages(data)
     } catch (err) {
       console.error('Failed to fetch messages:', err)
@@ -106,8 +107,20 @@ export default function MessagesInbox() {
 
       <div className="space-y-4">
         {isLoading && messages.length === 0 ? (
-          [...Array(3)].map((_, i) => (
-            <div key={i} className="h-32 bg-gray-50 rounded-2xl animate-pulse" />
+          [...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+              <div className="flex justify-between">
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-3 w-48" />
+                </div>
+                <Skeleton className="h-5 w-5 rounded-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            </div>
           ))
         ) : filteredMessages.length > 0 ? (
           filteredMessages.map((msg) => (

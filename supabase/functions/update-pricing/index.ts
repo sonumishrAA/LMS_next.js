@@ -21,8 +21,11 @@ serve(async (req) => {
     const { payload } = await jwtVerify(token, secret)
     if (payload.role !== 'superadmin') throw new Error('Unauthorized')
 
-    // 2. Handle GET (List pricing)
-    if (req.method === 'GET') {
+    // 2. Handle GET or POST (List pricing)
+    // We allow POST as a fallback for older/cached frontend code
+    if (req.method === 'GET' || req.method === 'POST') {
+      // If it's a POST, check if it's meant to be a PATCH (has body)
+      // Actually, we'll just distinguish based on whether it's a retrieve-only request.
       const { data, error } = await supabaseAdmin
         .from('pricing_config')
         .select('*')
@@ -63,7 +66,7 @@ serve(async (req) => {
     console.error('Pricing error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 401,
     })
   }
 })

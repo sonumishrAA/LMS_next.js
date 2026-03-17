@@ -13,16 +13,31 @@ serve(async (req) => {
     const scope = url.searchParams.get('scope') // 'admin' or 'library'
     const library_id = url.searchParams.get('library_id')
 
-    // 1. Admin Stats Logic
-    if (scope === 'admin') {
+    // 1. Admin Stats Logic (Allows GET or POST fallback)
+    if (scope === 'admin' && (req.method === 'GET' || req.method === 'POST')) {
+      console.log('--- Admin Stats Auth Debug ---')
       const authHeader = req.headers.get('Authorization')
+      console.log('Auth header present:', !!authHeader)
+      
       if (!authHeader) throw new Error('No authorization header')
       const token = authHeader.replace('Bearer ', '')
+      console.log('Token length:', token.length)
+
       const jwtSecret = Deno.env.get('JWT_SECRET')?.trim()
       if (!jwtSecret) throw new Error('JWT secret not configured')
-      const secret = new TextEncoder().encode(jwtSecret)
-      const { payload } = await jwtVerify(token, secret)
-      if (payload.role !== 'superadmin') throw new Error('Unauthorized')
+      
+      try {
+        const secret = new TextEncoder().encode(jwtSecret)
+        const { payload } = await jwtVerify(token, secret)
+        console.log('JWT verified successfully, role:', payload.role)
+        if (payload.role !== 'superadmin') throw new Error('Unauthorized role')
+      } catch (jwtErr: any) {
+        console.error('JWT Verification failed:', jwtErr.message)
+        return new Response(
+          JSON.stringify({ error: 'Invalid or expired token', detail: jwtErr.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        )
+      }
 
       const today = new Date().toISOString()
       const firstOfThisMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()

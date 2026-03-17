@@ -11,9 +11,9 @@ import {
   TrendingUp,
   MapPin,
   Calendar,
-  ChevronRight,
-  Loader2
+  ChevronRight
 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/Skeleton'
 import ChartsWrapper from '@/components/admin/ChartsWrapper'
 
 export default function AdminOverview() {
@@ -38,18 +38,18 @@ export default function AdminOverview() {
     fetchStats()
   }, [])
 
-  if (loading) {
-    return (
-      <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
-        <Loader2 className="w-10 h-10 text-brand-500 animate-spin" />
-        <p className="text-gray-500 font-medium">Loading Dashboard...</p>
-      </div>
-    )
-  }
 
-  if (!data) return <div>Error loading dashboard.</div>
+  if (!loading && !data) return <div className="p-10 text-center text-red-500 font-bold bg-red-50 rounded-2xl">Error loading dashboard. Please refresh.</div>
 
-  const { total_libraries, active_libraries, grace_libraries, monthly_revenue, chart_data, recent_libraries, expiring_libraries } = data
+  const { 
+    total_libraries, 
+    active_libraries, 
+    grace_libraries, 
+    monthly_revenue, 
+    chart_data, 
+    recent_libraries, 
+    expiring_libraries 
+  } = data || {}
 
   return (
     <div className="space-y-10">
@@ -64,33 +64,44 @@ export default function AdminOverview() {
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Total Libraries" 
-          value={total_libraries || 0} 
+          value={total_libraries} 
+          loading={loading}
           icon={<LibraryIcon className="w-5 h-5 text-brand-500" />} 
           color="bg-white" 
         />
         <StatCard 
           title="Active Now" 
-          value={active_libraries || 0} 
+          value={active_libraries} 
+          loading={loading}
           icon={<Users className="w-5 h-5 text-green-500" />} 
           color="bg-white" 
         />
         <StatCard 
           title="In Grace Period" 
-          value={grace_libraries || 0} 
+          value={grace_libraries} 
+          loading={loading}
           icon={<AlertTriangle className="w-5 h-5 text-amber-500" />} 
           color="bg-white" 
         />
         <StatCard 
           title="Revenue (Month)" 
-          value={`₹${(monthly_revenue || 0).toLocaleString()}`} 
+          value={monthly_revenue !== undefined ? `₹${(monthly_revenue || 0).toLocaleString()}` : null} 
+          loading={loading}
           icon={<TrendingUp className="w-5 h-5 text-blue-500" />} 
           color="bg-white" 
         />
       </section>
 
       {/* Charts Row */}
-      <section className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-        <ChartsWrapper data={chart_data} />
+      <section className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 h-[400px]">
+        {loading ? (
+          <div className="h-full flex flex-col gap-4">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="flex-1 w-full" />
+          </div>
+        ) : (
+          <ChartsWrapper data={chart_data} />
+        )}
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
@@ -114,7 +125,17 @@ export default function AdminOverview() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {recent_libraries?.length ? recent_libraries.map((lib: any) => (
+                  {loading ? (
+                    [...Array(5)].map((_, i) => (
+                      <tr key={i}>
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-32 mb-1" /><Skeleton className="h-2 w-20" /></td>
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-12" /></td>
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-16" /></td>
+                        <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+                      </tr>
+                    ))
+                  ) : recent_libraries?.length ? recent_libraries.map((lib: any) => (
                     <tr key={lib.id} className="hover:bg-gray-50/50 transition-colors cursor-pointer">
                       <td className="px-6 py-4">
                         <p className="font-bold text-brand-900 text-sm">{lib.name}</p>
@@ -152,7 +173,13 @@ export default function AdminOverview() {
 
         {/* Side Panel: Expirations */}
         <div className="lg:col-span-4 space-y-6">
-          {expiring_libraries && expiring_libraries.length > 0 && (
+          {loading ? (
+             <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-4">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+             </div>
+          ) : expiring_libraries && expiring_libraries.length > 0 ? (
             <div className="bg-amber-50 border-l-[3px] border-amber-500 p-6 rounded-r-2xl space-y-4">
               <h3 className="text-amber-800 font-bold flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5" />
@@ -168,7 +195,7 @@ export default function AdminOverview() {
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
             <h3 className="text-brand-900 font-bold">Quick Actions</h3>
@@ -184,14 +211,18 @@ export default function AdminOverview() {
   )
 }
 
-function StatCard({ title, value, icon, color }: { title: string, value: string | number, icon: React.ReactNode, color: string }) {
+function StatCard({ title, value, icon, color, loading }: { title: string, value: any, icon: React.ReactNode, color: string, loading: boolean }) {
   return (
     <div className={`${color} p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4`}>
       <div className="flex justify-between items-start">
         <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{title}</p>
         <div className="p-2 bg-gray-50 rounded-lg">{icon}</div>
       </div>
-      <p className="text-2xl font-bold text-brand-900 font-mono tracking-tight">{value}</p>
+      {loading ? (
+        <Skeleton className="h-8 w-24" />
+      ) : (
+        <p className="text-2xl font-bold text-brand-900 font-mono tracking-tight">{value}</p>
+      )}
     </div>
   )
 }

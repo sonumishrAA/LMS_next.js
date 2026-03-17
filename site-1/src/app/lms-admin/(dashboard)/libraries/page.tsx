@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { callEdgeFunction } from '@/lib/api'
 import LibrariesTable from '@/components/admin/LibrariesTable'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { Loader2 } from 'lucide-react'
 
 export default function LibrariesPage() {
@@ -13,7 +14,7 @@ export default function LibrariesPage() {
     async function fetchData() {
       try {
         const data = await callEdgeFunction('admin-libraries', {
-          method: 'POST',
+          method: 'GET',
           useAdminToken: true
         })
         setEnriched(data)
@@ -26,14 +27,6 @@ export default function LibrariesPage() {
     fetchData()
   }, [])
 
-  if (loading) {
-    return (
-      <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
-        <Loader2 className="w-10 h-10 text-brand-500 animate-spin" />
-        <p className="text-gray-500 font-medium">Loading Libraries...</p>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-8">
@@ -47,7 +40,19 @@ export default function LibrariesPage() {
         </div>
       </header>
 
-      <LibrariesTable initialData={enriched} />
+      {loading ? (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-8 space-y-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <LibrariesTable initialData={enriched} />
+      )}
     </div>
   )
 }

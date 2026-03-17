@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react'
 import { 
-  AlertTriangle, 
   Save, 
   Trash2, 
   RefreshCw,
@@ -13,6 +12,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { callEdgeFunction } from '@/lib/api'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 interface PricingPlan {
   id: number
@@ -27,12 +27,11 @@ export default function PricingControl() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState<string | null>(null)
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null)
-  const [isCleaning, setIsCleaning] = useState(false)
 
   const fetchPlans = async () => {
     setIsLoading(true)
     try {
-      const data = await callEdgeFunction('update-pricing', { useAdminToken: true })
+      const data = await callEdgeFunction('update-pricing', { method: 'GET', useAdminToken: true })
       if (data) setPlans(data)
     } catch (err) {
       console.error('Failed to fetch pricing:', err)
@@ -72,22 +71,6 @@ export default function PricingControl() {
     }
   }
 
-  const handleDataCleanup = async () => {
-    if (!confirm('This will permanently delete all student data for libraries past their delete_date. Cannot be undone. Are you sure?')) return
-    
-    setIsCleaning(true)
-    try {
-      const res = await fetch('/api/cron/data-cleanup', {
-        headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET}` }
-      })
-      const result = await res.json()
-      alert(`${result.librariesCleaned} libraries cleaned. ${result.studentsDeleted} students deleted.`)
-    } catch (err) {
-      alert('Cleanup failed. Check server logs.')
-    } finally {
-      setIsCleaning(false)
-    }
-  }
 
   return (
     <div className="space-y-10 max-w-5xl">
@@ -103,19 +86,6 @@ export default function PricingControl() {
         </div>
       )}
 
-      <div className="bg-amber-50 border-l-[4px] border-amber-600 p-6 rounded-r-2xl">
-        <div className="flex gap-4">
-          <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0" />
-          <div>
-            <p className="text-sm text-amber-800 leading-relaxed">
-              <span className="font-bold">Testing Note:</span> You can set <span className="font-bold text-red-600 uppercase tracking-tight">duration in minutes</span> to test expiration instantly.
-            </p>
-            <p className="text-[11px] text-amber-700/70 mt-1 italic">
-              * 1 Month ≈ 43200 min | 1 Day = 1440 min | 10 Min = 10
-            </p>
-          </div>
-        </div>
-      </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
@@ -132,8 +102,12 @@ export default function PricingControl() {
             <tbody className="divide-y divide-gray-50">
               {isLoading ? (
                 [...Array(4)].map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td colSpan={5} className="px-8 py-6 h-16 bg-gray-50/20"></td>
+                  <tr key={i}>
+                    <td className="px-8 py-6"><Skeleton className="h-4 w-20" /></td>
+                    <td className="px-8 py-6"><Skeleton className="h-4 w-16 mx-auto" /></td>
+                    <td className="px-8 py-6"><Skeleton className="h-10 w-28" /></td>
+                    <td className="px-8 py-6"><Skeleton className="h-10 w-32" /></td>
+                    <td className="px-8 py-6 text-right"><Skeleton className="h-10 w-24 ml-auto" /></td>
                   </tr>
                 ))
               ) : (
@@ -187,23 +161,6 @@ export default function PricingControl() {
         </div>
       </div>
 
-      <div className="pt-10 border-t border-gray-100">
-        <h3 className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] mb-6">Danger Zone</h3>
-        <div className="bg-red-50/50 border border-red-100 p-8 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-1">
-            <h4 className="text-red-900 font-bold">Delete Expired Student Data</h4>
-            <p className="text-sm text-red-700/70 font-medium">This runs automatically at 2AM daily. Manual trigger for testing or urgent cleanup only.</p>
-          </div>
-          <button 
-            onClick={handleDataCleanup}
-            disabled={isCleaning}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-red-200 text-red-600 rounded-xl text-sm font-bold hover:bg-red-600 hover:text-white transition-all active:scale-95 disabled:opacity-50"
-          >
-            {isCleaning ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-            Clear Expired Data Now
-          </button>
-        </div>
-      </div>
     </div>
   )
 }

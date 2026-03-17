@@ -22,7 +22,11 @@ serve(async (req) => {
     
     if (payload.role !== 'superadmin') throw new Error('Unauthorized')
 
-    // 2. Fetch all libraries
+    // 2. Fetch all libraries (Allows GET or POST)
+    if (req.method !== 'GET' && req.method !== 'POST') {
+      throw new Error('Method not allowed')
+    }
+
     const { data: libraries, error: libError } = await supabaseAdmin
       .from('libraries')
       .select('*')

@@ -22,8 +22,8 @@ serve(async (req) => {
     
     if (payload.role !== 'superadmin') throw new Error('Unauthorized')
 
-    // 2. Handle GET
-    if (req.method === 'GET') {
+    // 2. Handle GET or POST (List messages fallback)
+    if (req.method === 'GET' || req.method === 'POST') {
       const { data, error } = await supabaseAdmin
         .from('contact_messages')
         .select('*')
