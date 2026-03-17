@@ -243,12 +243,13 @@ export default function Step6Accounts({
             ) : (
               <>
                 <label className="block text-sm font-medium text-gray-700">Create Owner Password*</label>
-                <input
-                  type="password"
-                  {...register('owner.password')}
-                  className="mt-1 block w-full rounded-md border border-gray-200 px-3 py-2 shadow-sm focus:border-brand-500 focus:ring-brand-500"
-                  placeholder="Minimum 8 characters"
-                />
+                  <input
+                    type="password"
+                    {...register('owner.password')}
+                    autoComplete="new-password"
+                    className="mt-1 block w-full rounded-md border border-gray-200 px-3 py-2 shadow-sm focus:border-brand-500 focus:ring-brand-500"
+                    placeholder="Minimum 8 characters"
+                  />
                 {errors.owner?.password && <p className="text-xs text-red-500 mt-1">{errors.owner.password.message}</p>}
               </>
             )}
@@ -300,6 +301,7 @@ export default function Step6Accounts({
                 <input
                   type="password"
                   {...register(`staff_list.${index}.password` as const)}
+                  autoComplete="new-password"
                   className="mt-1 block w-full rounded-md border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500"
                   placeholder="Min 8 chars"
                 />
