@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import StatusBadge from '@/components/ui/StatusBadge'
 import RenewalSheet from '@/components/Students/RenewalSheet'
 import { whatsappLink, formatPhone } from '@/lib/utils'
@@ -28,8 +28,7 @@ const MOCK_STUDENT = {
 }
 
 export default function StudentDetailPage() {
-  const searchParams = useSearchParams()
-  const id = searchParams.get('id')
+  const { id } = useParams()
   const router = useRouter()
   const [isRenewalOpen, setIsRenewalOpen] = useState(false)
 
