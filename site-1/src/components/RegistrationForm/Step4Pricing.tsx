@@ -35,8 +35,10 @@ export default function Step4Pricing({
           .from('pricing_config')
           .select('*')
 
-        const baseMonthly = Number(pricingData?.find(p => p.plan === '1m')?.amount || 0)
-        console.log('Base monthly price identified:', baseMonthly)
+        // Default to 500 as requested by the user, or use DB value if it's set and non-zero
+        const baseFromDB = Number(pricingData?.find(p => p.plan === '1m')?.amount || 0)
+        const baseMonthly = baseFromDB > 0 ? baseFromDB : 500
+        console.log('Using base monthly price:', baseMonthly)
 
         const initialPrices: Record<string, number> = {}
         SHIFT_COMBINATIONS.forEach(combo => {
