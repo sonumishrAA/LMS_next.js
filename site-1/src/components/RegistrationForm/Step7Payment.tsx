@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { RegistrationData } from './RegistrationForm'
 import Script from 'next/script'
 import { callEdgeFunction } from '@/lib/api'
+import { supabaseBrowser } from '@/lib/supabase/browser'
 
 interface DBPlan {
   plan: string
@@ -28,7 +29,12 @@ export default function Step7Payment({
   useEffect(() => {
     async function fetchPricing() {
       try {
-        const pricingData: DBPlan[] = await callEdgeFunction('update-pricing', { method: 'GET', useAdminToken: false }) // It's public for registration
+        const { data: pricingData, error } = await supabaseBrowser
+          .from('pricing_config')
+          .select('*')
+          .order('plan', { ascending: true })
+
+        if (error) throw error
         
         const mappedPlans = [
           { id: '1m', label: '1 Month', price: pricingData.find(p => p.plan === '1m')?.amount || 500 },

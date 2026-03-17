@@ -63,9 +63,9 @@ serve(async (req) => {
     
     // Choose appropriate status code
     let status = 400
-    if (error.message.includes('No authorization') || error.message.includes('Unauthorized') || error.message.includes('signature')) {
+    if (error.message?.includes('No authorization') || error.message?.includes('Unauthorized')) {
       status = 401
-    } else if (error.code || error.message.includes('Database')) {
+    } else if (error.code || error.message?.includes('Database')) {
       status = 500
     }
 

@@ -30,10 +30,20 @@ serve(async (req) => {
       status: 200,
     })
   } catch (error: any) {
-    console.error('check-email error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error(`check-email error (${req.method}):`, error)
+    
+    // Choose appropriate status code
+    let status = 400
+    if (error.code || error.message?.includes('Database')) {
+      status = 500
+    }
+
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      method: req.method 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: status,
     })
   }
 })
