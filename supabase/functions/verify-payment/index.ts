@@ -146,10 +146,19 @@ serve(async (req) => {
     )
 
   } catch (error: any) {
-    console.error('Verify error:', error)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-    )
+    console.error(`verify-payment error (${req.method}):`, error)
+    
+    let status = 400
+    if (error.message?.includes('Database') || error.code) {
+      status = 500
+    }
+
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      method: req.method 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: status,
+    })
   }
 })
