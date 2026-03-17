@@ -32,7 +32,7 @@ export async function callEdgeFunction(
 
   if (useAuthToken) {
     // For site-2, we use Supabase Auth session token
-    const { data: { session } } = await (await import('@/lib/supabase/client')).supabase.auth.getSession()
+    const { data: { session } } = await (await import('@/lib/supabase/client')).supabaseBrowser.auth.getSession()
     if (session?.access_token) {
       allHeaders['Authorization'] = `Bearer ${session.access_token}`
     }
