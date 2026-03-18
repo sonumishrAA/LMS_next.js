@@ -7,7 +7,11 @@ export function isAdminTokenValid(): boolean {
     if (!token) return false
     const parts = token.split('.')
     if (parts.length !== 3) return false
-    const payload = JSON.parse(atob(parts[1]))
+    // JWT uses base64url (- and _), atob() needs standard base64 (+ and /)
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/').padEnd(
+      parts[1].length + (4 - (parts[1].length % 4)) % 4, '='
+    )
+    const payload = JSON.parse(atob(base64))
     // exp is in seconds, Date.now() is in ms
     if (payload.exp && payload.exp * 1000 < Date.now()) {
       localStorage.removeItem('admin_token')
