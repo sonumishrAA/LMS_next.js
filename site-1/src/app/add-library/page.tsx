@@ -6,6 +6,8 @@ import { Building2, Plus, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-re
 import RegistrationForm, { RegistrationData } from '@/components/RegistrationForm/RegistrationForm'
 import { cn } from '@/lib/utils'
 
+import { callEdgeFunction } from '@/lib/api'
+
 function AddLibraryContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -26,11 +28,11 @@ function AddLibraryContent() {
 
     async function verify() {
       try {
-        const res = await fetch(`/api/verify-token?token=${token}&purpose=add-library`)
-        const data = await res.json()
-
-        if (!res.ok) throw new Error(data.error || 'Verification failed')
-        
+        // Call Supabase edge function directly (not local /api route — site-1 is static)
+        const data = await callEdgeFunction('verify-token', {
+          method: 'GET',
+          queryParams: { token: token!, purpose: 'add-library' },
+        })
         setPayload(data.payload)
       } catch (err: any) {
         setError(err.message)
