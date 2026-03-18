@@ -8,24 +8,14 @@ import Script from 'next/script'
 import { callEdgeFunction } from '@/lib/api'
 
 declare global {
-  interface Window {
-    Razorpay: any;
-  }
+  interface Window { Razorpay: any }
 }
 
 interface Plan {
-  months: number
-  price: number
-  label: string
-  popular?: boolean
+  plan: string  // '1m', '3m', '6m', '12m'
+  amount: number
+  duration_minutes: number
 }
-
-const PLANS: Plan[] = [
-  { months: 1, price: 500, label: '1 Month' },
-  { months: 3, price: 1200, label: '3 Months', popular: true },
-  { months: 6, price: 2200, label: '6 Months' },
-  { months: 12, price: 4000, label: '1 Year' }
-]
 
 function RenewContent() {
   const router = useRouter()
@@ -36,9 +26,10 @@ function RenewContent() {
   const [error, setError] = useState<string | null>(null)
   const [library, setLibrary] = useState<any>(null)
   const [payload, setPayload] = useState<any>(null)
-  
-  const [selectedPlan, setSelectedPlan] = useState<Plan>(PLANS[1])
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
   const [processing, setProcessing] = useState(false)
+  const [success, setSuccess] = useState(false)
 
   useEffect(() => {
     if (!token) {
@@ -47,22 +38,30 @@ function RenewContent() {
       return
     }
 
-    async function verify() {
+    async function load() {
       try {
+        // Fetch token + library data
         const data = await callEdgeFunction('verify-token', {
           method: 'GET',
           queryParams: { token: token!, purpose: 'renew' }
         })
-        
         setLibrary(data.library)
         setPayload(data.payload)
+
+        // Fetch live pricing from admin config (public endpoint)
+        const pricing = await callEdgeFunction('update-pricing', { method: 'GET' })
+        if (Array.isArray(pricing) && pricing.length > 0) {
+          setPlans(pricing)
+          const def = pricing.find((p: Plan) => p.plan === '3m') || pricing[0]
+          setSelectedPlan(def)
+        }
       } catch (err: any) {
         setError(err.message)
       } finally {
         setLoading(false)
       }
     }
-    verify()
+    load()
   }, [token])
 
   const handlePayment = async () => {
@@ -70,19 +69,16 @@ function RenewContent() {
       alert('Payment system is loading. Please try again in a moment.')
       return
     }
+    if (!selectedPlan || !payload) return
+
+    const planMonths = selectedPlan.plan === '1m' ? 1 : selectedPlan.plan === '3m' ? 3 : selectedPlan.plan === '6m' ? 6 : 12
 
     setProcessing(true)
     try {
-      // 1. Create order
       const orderData = await callEdgeFunction('create-renewal-order', {
-        body: {
-          token,
-          library_id: payload.library_id,
-          plan_months: selectedPlan.months
-        }
+        body: { token, library_id: payload.library_id, plan_months: planMonths }
       })
 
-      // 2. Open Razorpay
       const options = {
         key: orderData.key,
         amount: orderData.amount,
@@ -90,25 +86,33 @@ function RenewContent() {
         name: 'LibraryOS',
         description: `Renewing ${library?.name}`,
         order_id: orderData.order_id,
-        handler: function (response: any) {
-          // Success! Redirect back to dashboard Let webhook update DB
-          window.location.href = 'https://app.libraryos.in?renewed=true'
+        handler: async function (response: any) {
+          try {
+            // MUST call verify-renewal to actually update subscription_end in DB
+            await callEdgeFunction('verify-renewal', {
+              body: {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                library_id: payload.library_id,
+                plan_months: planMonths,
+              },
+            })
+            setSuccess(true)
+            setTimeout(() => {
+              window.location.href = 'https://app.libraryos.in'
+            }, 2000)
+          } catch (err: any) {
+            alert('Payment received but verification failed. Contact support with payment ID: ' + response.razorpay_payment_id)
+            setProcessing(false)
+          }
         },
-        prefill: {
-          email: payload.owner_email,
-        },
-        theme: {
-          color: '#0f172a' // brand-900
-        }
+        prefill: { email: payload.owner_email },
+        theme: { color: '#0f172a' },
+        modal: { ondismiss: () => setProcessing(false) }
       }
 
-      const rzp = new window.Razorpay(options)
-      rzp.on('payment.failed', function (response: any) {
-        alert(response.error.description)
-        setProcessing(false)
-      })
-      rzp.open()
-
+      new window.Razorpay(options).open()
     } catch (err: any) {
       alert(err.message)
       setProcessing(false)
@@ -123,6 +127,18 @@ function RenewContent() {
     )
   }
 
+  if (success) {
+    return (
+      <div className="min-h-screen bg-brand-900 flex items-center justify-center p-6">
+        <div className="text-center">
+          <CheckCircle2 className="w-16 h-16 text-green-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white">Renewed Successfully!</h2>
+          <p className="text-white/60 mt-2 text-sm">Redirecting to your dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (error) {
     return (
       <div className="min-h-screen bg-brand-900 flex items-center justify-center p-6">
@@ -131,7 +147,7 @@ function RenewContent() {
             <AlertTriangle className="w-8 h-8" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Access Denied</h2>
+            <h2 className="text-xl font-bold text-gray-900">Error</h2>
             <p className="text-sm text-gray-500 mt-2">{error}</p>
           </div>
           <a href="https://app.libraryos.in/select-library" className="block w-full py-3 bg-brand-900 text-white rounded-xl font-bold mt-4">
@@ -181,44 +197,44 @@ function RenewContent() {
           <div className="space-y-3">
             <p className="text-[11px] font-black tracking-widest uppercase text-gray-400">Select Extension Plan</p>
             <div className="grid grid-cols-2 gap-3">
-              {PLANS.map((plan) => (
-                <button
-                  key={plan.months}
-                  onClick={() => setSelectedPlan(plan)}
-                  className={cn(
-                    "relative p-4 rounded-2xl border-2 text-left transition-all",
-                    selectedPlan.months === plan.months 
-                      ? "border-brand-500 bg-brand-50 ring-4 ring-brand-500/10" 
-                      : "border-gray-100 hover:border-brand-200"
-                  )}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-brand-900 text-white text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full whitespace-nowrap">
-                      Most Popular
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between mb-2">
-                    <p className={cn(
-                      "font-bold text-sm",
-                      selectedPlan.months === plan.months ? "text-brand-900" : "text-gray-900"
-                    )}>{plan.label}</p>
-                    {selectedPlan.months === plan.months && (
-                      <CheckCircle2 className="w-4 h-4 text-brand-500" />
+              {plans.map((plan) => {
+                const LABELS: Record<string, string> = { '1m': '1 Month', '3m': '3 Months', '6m': '6 Months', '12m': '12 Months' }
+                const isSelected = selectedPlan?.plan === plan.plan
+                return (
+                  <button
+                    key={plan.plan}
+                    onClick={() => setSelectedPlan(plan)}
+                    className={cn(
+                      "relative p-4 rounded-2xl border-2 text-left transition-all",
+                      isSelected
+                        ? "border-brand-500 bg-brand-50 ring-4 ring-brand-500/10"
+                        : "border-gray-100 hover:border-brand-200"
                     )}
-                  </div>
-                  <p className={cn(
-                    "text-xl font-black font-mono leading-none",
-                    selectedPlan.months === plan.months ? "text-brand-600" : "text-gray-600"
-                  )}>₹{plan.price}</p>
-                  <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase">Per Library</p>
-                </button>
-              ))}
+                  >
+                    {plan.plan === '3m' && (
+                      <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-brand-900 text-white text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full whitespace-nowrap">
+                        Most Popular
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between mb-2">
+                      <p className={cn("font-bold text-sm", isSelected ? "text-brand-900" : "text-gray-900")}>
+                        {LABELS[plan.plan] || plan.plan}
+                      </p>
+                      {isSelected && <CheckCircle2 className="w-4 h-4 text-brand-500" />}
+                    </div>
+                    <p className={cn("text-xl font-black font-mono leading-none", isSelected ? "text-brand-600" : "text-gray-600")}>
+                      ₹{plan.amount}
+                    </p>
+                    <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase">Per Library</p>
+                  </button>
+                )
+              })}
             </div>
           </div>
 
           <button
             onClick={handlePayment}
-            disabled={processing}
+            disabled={processing || !selectedPlan}
             className="w-full bg-brand-900 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-800 transition-colors disabled:opacity-50"
           >
             {processing ? (
@@ -226,7 +242,7 @@ function RenewContent() {
             ) : (
               <>
                 <CreditCard className="w-5 h-5" />
-                Pay ₹{selectedPlan.price} Securely
+                Pay ₹{selectedPlan?.amount ?? '...'} Securely
               </>
             )}
           </button>
