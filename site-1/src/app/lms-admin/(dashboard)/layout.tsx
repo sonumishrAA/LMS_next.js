@@ -11,6 +11,7 @@ import {
   BookOpen
 } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
+import { isAdminTokenValid } from '@/lib/api'
 
 export default function DashboardLayout({
   children,
@@ -23,10 +24,9 @@ export default function DashboardLayout({
   const [isAuthChecked, setIsAuthChecked] = useState(false)
 
   useEffect(() => {
-    // Guard: if no admin token, redirect to login immediately
-    const token = localStorage.getItem('admin_token')
-    if (!token) {
-      router.replace('/lms-admin/login')
+    // Guard: check if admin token exists AND is not expired
+    if (!isAdminTokenValid()) {
+      router.replace('/lms-admin/login?expired=1')
       return
     }
     setIsAuthChecked(true)

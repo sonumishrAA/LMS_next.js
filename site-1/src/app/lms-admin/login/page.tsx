@@ -2,8 +2,8 @@
 // Force build trigger
 
 import React, { useState } from 'react'
-import { BookOpen, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { BookOpen, Lock, Eye, EyeOff, AlertCircle, Clock } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { callEdgeFunction } from '@/lib/api'
 
 export default function LoginPage() {
@@ -13,6 +13,8 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isExpired = searchParams.get('expired') === '1'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,6 +53,13 @@ export default function LoginPage() {
             <Lock className="w-3.5 h-3.5" /> Admin Access
           </p>
         </div>
+
+        {isExpired && (
+          <div className="mb-4 p-4 bg-amber-50 border border-amber-100 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+            <Clock className="w-5 h-5 text-amber-500 shrink-0" />
+            <p className="text-sm font-medium text-amber-700">Session expired. Please sign in again.</p>
+          </div>
+        )}
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
