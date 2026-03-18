@@ -20,6 +20,7 @@ interface Library {
 interface LibraryWithStats extends Library {
   studentCount: number
   daysLeft: number
+  minutesLeft: number
   isExpired: boolean
 }
 
@@ -70,13 +71,18 @@ export default function SelectLibraryPage() {
             .eq('is_deleted', false)
 
           const subEnd = new Date(lib.subscription_end)
-          const daysLeft = Math.ceil((subEnd.getTime() - today.getTime()) / 86400000)
+          const now = new Date()
+          const msLeft = subEnd.getTime() - now.getTime()
+          const minutesLeft = Math.ceil(msLeft / 60000)
+          const daysLeft = Math.ceil(msLeft / 86400000)
+          const isExpired = msLeft <= 0
 
           return {
             ...lib,
             studentCount: count || 0,
             daysLeft,
-            isExpired: daysLeft < 0,
+            minutesLeft,
+            isExpired,
           }
         })
       )
@@ -89,32 +95,16 @@ export default function SelectLibraryPage() {
   }, [router])
 
   async function selectLibrary(lib: LibraryWithStats) {
-    if (lib.isExpired) {
-      if (role !== 'owner') {
-        alert('This library is expired. Only the owner can renew it.')
-        return
-      }
-
-      setLoadingAction(lib.id)
-      try {
-        const data = await callEdgeFunction('generate-token', {
-          body: { library_id: lib.id, purpose: 'renew' },
-          libraryId: lib.id
-        })
-        
-        // Redirect to Site 1
-        window.location.href = `https://libraryos.in/renew?token=${data.token}`
-      } catch (err: any) {
-        alert(err.message)
-        setLoadingAction(null)
-      }
+    if (lib.isExpired && role !== 'owner') {
+      alert('This library is expired. Only the owner can renew it.')
       return
     }
 
-    // Set cookie for 30 days
+    // Set the active library & go to home — AuthGuard handles expiry inline
     document.cookie = `active_library_id=${lib.id}; path=/; max-age=2592000`
     router.push('/')
   }
+
 
   async function handleLogout() {
     await supabaseBrowser.auth.signOut()
@@ -181,7 +171,14 @@ export default function SelectLibraryPage() {
                 <>
                   <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
                   <span className="text-[11px] font-bold text-red-400 uppercase tracking-widest">
-                    Expired {Math.abs(lib.daysLeft)} days ago · {role === 'owner' ? 'Tap to renew' : 'Owner access required'}
+                    {role === 'owner' ? 'Expired · Tap to renew' : 'Expired · Owner access required'}
+                  </span>
+                </>
+              ) : lib.minutesLeft < 60 ? (
+                <>
+                  <Clock className="w-3.5 h-3.5 text-red-400" />
+                  <span className="text-[11px] font-bold text-red-400 uppercase tracking-widest">
+                    Expiring in {lib.minutesLeft} min
                   </span>
                 </>
               ) : lib.daysLeft <= 7 ? (
