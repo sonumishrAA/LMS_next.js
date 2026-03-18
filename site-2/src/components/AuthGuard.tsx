@@ -94,23 +94,16 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     checkAuth()
   }, [mounted, pathname, router])
 
-  // Hydration mismatch fix: only render loader until mounted
-  if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500"></div>
-      </div>
-    )
-  }
-
-  // Show loader while checking auth/loading initial state
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500"></div>
-      </div>
-    )
-  }
-
-  return <>{children}</>
+  // Hydration mismatch fix & hook stability: always render children
+  // but cover with a spinner until auth/loading is complete
+  return (
+    <>
+      {(!mounted || loading) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50/80 backdrop-blur-sm transition-opacity duration-300">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500"></div>
+        </div>
+      )}
+      {children}
+    </>
+  )
 }

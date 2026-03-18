@@ -6,6 +6,5 @@ out
 .env.local
 .env.*.local
 *.tsbuildinfo
-package-lock.json
 build/
 dist/
