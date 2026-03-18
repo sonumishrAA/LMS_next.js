@@ -65,6 +65,20 @@ serve(async (req) => {
       .single()
       
     if (tempError || !tempReg) {
+      // It's possible the webhook just processed this and deleted tempReg. Check one more time.
+      const { data: recheck } = await supabaseAdmin
+        .from('subscription_payments')
+        .select('processed, library_id')
+        .eq('razorpay_order_id', razorpay_order_id)
+        .single()
+        
+      if (recheck?.processed) {
+        return new Response(
+          JSON.stringify({ success: true, library_id: recheck.library_id }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
       throw new Error('Registration data expired or not found')
     }
 
