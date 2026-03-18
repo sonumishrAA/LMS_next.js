@@ -1,3 +1,4 @@
+export const runtime = "edge";
 import ExpiredStudentsCard from '@/components/Dashboard/ExpiredStudentsCard'
 import ShiftOccupancyCard from '@/components/Dashboard/ShiftOccupancyCard'
 import { Users, Grid, CreditCard, Clock, Bell, TrendingUp, AlertTriangle, UserPlus, IndianRupee, Calendar } from 'lucide-react'

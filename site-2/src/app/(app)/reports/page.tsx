@@ -1,4 +1,5 @@
 'use client'
+export const runtime = "edge";
 
 import { BarChart3, TrendingUp, Download, PieChart, Users, Wallet } from 'lucide-react'
 
