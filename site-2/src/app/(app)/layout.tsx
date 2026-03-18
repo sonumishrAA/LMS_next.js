@@ -17,7 +17,6 @@ export default async function AppLayout({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Get library context for subscription banner
   const { data: staff } = await supabase
     .from('staff')
     .select('library_ids')
@@ -25,7 +24,7 @@ export default async function AppLayout({
     .single()
 
   const libraryId = await getActiveLibraryId(user.id, staff?.library_ids || [])
-  let daysLeft = 999 // default: far from expiring
+  let subscriptionEnd: string | null = null
 
   if (libraryId) {
     const { data: library } = await supabase
@@ -34,17 +33,13 @@ export default async function AppLayout({
       .eq('id', libraryId)
       .single()
 
-    if (library?.subscription_end) {
-      daysLeft = Math.ceil(
-        (new Date(library.subscription_end).getTime() - Date.now()) / 86400000
-      )
-    }
+    subscriptionEnd = library?.subscription_end || null
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 pb-20">
       <AppHeader />
-      <SubscriptionBanner daysLeft={daysLeft} />
+      <SubscriptionBanner subscriptionEnd={subscriptionEnd} />
       <main className="flex-1 overflow-x-hidden">
         {children}
       </main>
