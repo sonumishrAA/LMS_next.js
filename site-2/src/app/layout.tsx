@@ -41,18 +41,21 @@ export const viewport: Viewport = {
 };
 
 import AuthGuard from "@/components/AuthGuard";
+import { cookies } from "next/headers";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const activeLibId = cookieStore.get("active_library_id")?.value;
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${dmSans.variable} ${dmSerifDisplay.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
-        <AuthGuard>
+        <AuthGuard activeLibId={activeLibId}>
           {children}
         </AuthGuard>
       </body>

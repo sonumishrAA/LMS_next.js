@@ -240,7 +240,7 @@ function StaffBlockedWall() {
 }
 
 // ─── Main AuthGuard ──────────────────────────────────────────────────────────
-export default function AuthGuard({ children }: { children: React.ReactNode }) {
+export default function AuthGuard({ children, activeLibId }: { children: React.ReactNode, activeLibId?: string }) {
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [renewalState, setRenewalState] = useState<{
@@ -336,7 +336,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     checkAuth()
-  }, [mounted, pathname, router])
+  }, [mounted, pathname, router, activeLibId])
 
   const handleRenewalSuccess = () => {
     setRenewalState({ type: null, library: null, userId: '' })
