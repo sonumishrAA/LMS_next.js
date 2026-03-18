@@ -818,6 +818,8 @@ export default function LibrariesTable({ initialData }: { initialData: Library[]
                   const daysLeft = expiryDate ? differenceInDays(new Date(expiryDate), new Date()) : null
                   const isExpiring = daysLeft !== null && daysLeft <= 7 && daysLeft > 0
                   const isPastExpiry = expiryDate ? isPast(new Date(expiryDate)) : false
+                  // Compute effective status dynamically — DB field never auto-updates
+                  const effectiveStatus = isPastExpiry ? 'expired' : lib.subscription_status
                   const isExpanded = expandedRow === lib.id
 
                   return (
@@ -826,7 +828,7 @@ export default function LibrariesTable({ initialData }: { initialData: Library[]
                         className={`
                           hover:bg-gray-50/60 transition-all cursor-pointer group
                           ${isExpiring ? 'bg-amber-50/30' : ''}
-                          ${isPastExpiry && lib.subscription_status === 'expired' ? 'bg-red-50/20' : ''}
+                          ${isPastExpiry ? 'bg-red-50/20' : ''}
                           ${isExpanded ? 'bg-brand-50/30' : ''}
                         `}
                         onClick={() => setExpandedRow(isExpanded ? null : lib.id)}
@@ -844,16 +846,21 @@ export default function LibrariesTable({ initialData }: { initialData: Library[]
                           <span className="px-2 py-1 bg-brand-50 text-brand-600 rounded-lg text-xs font-bold">{lib.subscription_plan || '1m'}</span>
                         </td>
                         <td className="px-5 py-4">
-                          <StatusBadge status={lib.subscription_status} isExpiring={isExpiring} />
+                          <StatusBadge status={effectiveStatus} isExpiring={isExpiring} />
                         </td>
                         <td className="px-5 py-4 text-sm font-bold text-gray-700">
                           {lib.student_stats?.total ?? '—'}
                         </td>
                         <td className="px-5 py-4 text-sm font-medium whitespace-nowrap">
                           {expiryDate ? (
-                            <span className={daysLeft !== null && daysLeft <= 7 ? 'text-red-500 font-bold' : 'text-gray-600'}>
-                              {format(new Date(expiryDate), 'd MMM yyyy')}
-                            </span>
+                            <div className="flex flex-col gap-0.5">
+                              <span className={isPastExpiry ? 'text-red-500 font-bold' : daysLeft !== null && daysLeft <= 7 ? 'text-amber-600 font-bold' : 'text-gray-600'}>
+                                {format(new Date(expiryDate), 'd MMM yyyy')}
+                              </span>
+                              <span className={`text-[10px] font-mono font-bold ${isPastExpiry ? 'text-red-400' : 'text-gray-400'}`}>
+                                {format(new Date(expiryDate), 'h:mm:ss a')}
+                              </span>
+                            </div>
                           ) : '—'}
                         </td>
                         <td className="px-5 py-4 text-xs text-gray-500">{lib.owner_email || '—'}</td>
